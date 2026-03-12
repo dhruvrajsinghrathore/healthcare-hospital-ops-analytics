@@ -1,4 +1,4 @@
-.PHONY: setup gen-data up load-postgres dbt-run dbt-test export-powerbi down clean
+.PHONY: setup gen-data up load-postgres dbt-run dbt-test export-tableau down clean
 
 setup:
 	python3 -m venv venv
@@ -23,8 +23,8 @@ dbt-run:
 dbt-test:
 	. venv/bin/activate && cd dbt && dbt test
 
-export-powerbi:
-	. venv/bin/activate && python pipelines/export_marts_for_powerbi.py
+export-tableau:
+	. venv/bin/activate && python pipelines/export_marts_for_tableau.py
 
 down:
 	docker-compose down

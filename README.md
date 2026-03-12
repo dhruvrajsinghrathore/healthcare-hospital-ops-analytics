@@ -9,7 +9,7 @@ The data flows through a modern data stack:
 1. **Python** (Synthetic Data Generation)
 2. **PostgreSQL** (Local Data Warehouse)
 3. **dbt Core** (Data Transformation & Testing)
-4. **Power BI** (Data Visualization via exported CSVs)
+4. **Tableau Public** (Data Visualization via exported CSVs)
 
 ---
 
@@ -22,7 +22,7 @@ The data flows through a modern data stack:
     *   **Staging Models (`stg_*`)**: Clean up and establish the base views from the `raw` tables.
     *   **Marts (`mart_*`)**: Business-level aggregated tables combining facts and dimensions to answer specific KPIs (e.g., daily KPIs, department KPIs, readmission drivers, cost drivers).
     *   **Tests (`schema.yml`)**: Asserts data quality (uniqueness, non-null values, referential integrity, and accepted value constraints).
-*   **`pipelines/export_marts_for_powerbi.py`**: Extracts the finalized dbt mart tables into clean CSVs inside the `exports/` folder, which can be directly loaded into Power BI.
+*   **`pipelines/export_marts_for_tableau.py`**: Extracts the finalized dbt mart tables into clean CSVs inside the `exports/` folder, which can be directly loaded into Tableau.
 
 ---
 
@@ -33,7 +33,7 @@ Make sure you have the following installed:
 *   [Python 3.9+](https://www.python.org/downloads/)
 *   [Docker & Docker Compose](https://docs.docker.com/get-docker/)
 *   `make` (Usually pre-installed on Mac/Linux)
-*   [Power BI Desktop](https://powerbi.microsoft.com/desktop/) (For the final visualization step)
+*   [Tableau Public](https://public.tableau.com/en-us/s/) (For the final visualization step)
 
 ### Step 1: Initial Setup
 Clone the repository and run the setup command. This will create a virtual environment, install the required Python packages (including dbt and psycopg2), copy the environment variables template, and create necessary directories.
@@ -82,18 +82,18 @@ make dbt-test
 ```
 *Verification:* The terminal should show exactly 20 tests passing successfully.
 
-### Step 7: Export to Power BI
-Extract the final dbt mart tables into the `exports/` directory as CSV files, so they can be imported into Power BI without needing a direct database connection.
+### Step 7: Export to Tableau
+Extract the final dbt mart tables into the `exports/` directory as CSV files, so they can be imported into Tableau without needing a direct database connection.
 
 ```bash
-make export-powerbi
+make export-tableau
 ```
 *Verification:* Check the `exports/` directory. You will find `mart_hc_kpi_daily.csv`, `mart_hc_kpi_department.csv`, `mart_hc_readmission_drivers.csv`, and `mart_hc_cost_drivers.csv`.
 
 ---
 
-## 📊 Connecting to Power BI
-1. Open **Power BI Desktop**.
+## 📊 Connecting to Tableau
+1. Open **Tableau Public**.
 2. Click **Get Data** -> **Text/CSV**.
 3. Select the exported CSV files from the `exports/` folder:
    - `mart_hc_kpi_daily.csv`
