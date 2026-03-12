@@ -1,5 +1,7 @@
 # 🏥 Healthcare Hospital Ops Analytics
 
+![Dashboard Preview](assets/dashboard_preview.png)
+*A high-level view of the final Tableau dashboard visualizing Hospital KPIs.*
 ## 📖 Overview
 Hospitals face constant challenges in reducing Length of Stay (LOS), minimizing readmission rates, and managing cost per encounter, all while trying to increase department throughput and bed capacity utilization. 
 
