@@ -1,0 +1,6 @@
+pandas
+numpy
+faker
+psycopg2-binary
+dbt-postgres
+python-dotenv

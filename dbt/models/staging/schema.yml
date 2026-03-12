@@ -1,0 +1,88 @@
+version: 2
+sources:
+  - name: raw
+    tables:
+      - name: dim_date
+      - name: dim_hospital
+      - name: dim_department
+      - name: dim_diagnosis
+      - name: dim_patient
+      - name: fact_encounters
+      - name: fact_costs
+      - name: fact_readmissions
+
+models:
+  - name: stg_dim_patient
+    columns:
+      - name: patient_id
+        tests:
+          - unique
+          - not_null
+      - name: risk_tier
+        tests:
+          - accepted_values:
+              values: ['low', 'medium', 'high']
+
+  - name: stg_dim_department
+    columns:
+      - name: department_id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_dim_diagnosis
+    columns:
+      - name: diagnosis_code
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_fact_encounters
+    columns:
+      - name: encounter_id
+        tests:
+          - unique
+          - not_null
+      - name: patient_id
+        tests:
+          - relationships:
+              to: ref('stg_dim_patient')
+              field: patient_id
+      - name: department_id
+        tests:
+          - relationships:
+              to: ref('stg_dim_department')
+              field: department_id
+      - name: diagnosis_code
+        tests:
+          - relationships:
+              to: ref('stg_dim_diagnosis')
+              field: diagnosis_code
+      - name: admit_type
+        tests:
+          - accepted_values:
+              values: ['emergency', 'elective', 'urgent']
+
+  - name: stg_fact_costs
+    columns:
+      - name: encounter_id
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('stg_fact_encounters')
+              field: encounter_id
+      - name: payer_type
+        tests:
+          - accepted_values:
+              values: ['Medicare', 'Medicaid', 'Commercial', 'Self-pay']
+
+  - name: stg_fact_readmissions
+    columns:
+      - name: encounter_id
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('stg_fact_encounters')
+              field: encounter_id
