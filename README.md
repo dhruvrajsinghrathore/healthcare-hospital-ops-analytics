@@ -2,6 +2,7 @@
 
 ![Dashboard Preview](assets/dashboard_preview.png)
 *A high-level view of the final Tableau dashboard visualizing Hospital KPIs.*
+
 ## 📖 Overview
 Hospitals face constant challenges in reducing Length of Stay (LOS), minimizing readmission rates, and managing cost per encounter, all while trying to increase department throughput and bed capacity utilization. 
 
@@ -9,7 +10,7 @@ This project simulates a **Healthcare Hospital Operations Analytics** end-to-end
 
 The data flows through a modern data stack:
 1. **Python** (Synthetic Data Generation)
-2. **PostgreSQL** (Local Data Warehouse)
+2. **GCP BigQuery** (Cloud Data Warehouse)
 3. **dbt Core** (Data Transformation & Testing)
 4. **Tableau Public** (Data Visualization via exported CSVs)
 
@@ -18,13 +19,12 @@ The data flows through a modern data stack:
 ## 🏗️ Project Architecture & Components
 
 *   **`pipelines/generate_synthetic.py`**: A Python script using `pandas`, `numpy`, and `Faker` to generate realistic star-schema data (Dimensions: Date, Hospital, Department, Diagnosis, Patient. Facts: Encounters, Costs, Readmissions).
-*   **`docker-compose.yml`**: Provisions a local PostgreSQL 15 database to act as our Data Warehouse.
-*   **`pipelines/load_to_postgres.py`**: A Python script that creates the target database (if missing) and a `raw` schema in PostgreSQL, automatically infers table structures from the generated CSVs, and uses `COPY` for bulk loading the data into the database.
-*   **`dbt/` (Data Build Tool)**: Contains our transformation logic.
+*   **`pipelines/load_to_bigquery.py`**: A Python script that infers schema using pandas and fast-loads the data into the **GCP BigQuery** `raw` dataset.
+*   **`dbt/` (Data Build Tool)**: Contains our transformation logic perfectly mapped for BigQuery SQL syntax.
     *   **Staging Models (`stg_*`)**: Clean up and establish the base views from the `raw` tables.
     *   **Marts (`mart_*`)**: Business-level aggregated tables combining facts and dimensions to answer specific KPIs (e.g., daily KPIs, department KPIs, readmission drivers, cost drivers).
     *   **Tests (`schema.yml`)**: Asserts data quality (uniqueness, non-null values, referential integrity, and accepted value constraints).
-*   **`pipelines/export_marts_for_tableau.py`**: Extracts the finalized dbt mart tables into clean CSVs inside the `exports/` folder, which can be directly loaded into Tableau.
+*   **`pipelines/export_marts_for_tableau.py`**: Extracts the finalized dbt mart tables from BigQuery into clean CSVs inside the `exports_gcp_bigquery/` and `exports/` folders.
 
 ---
 
@@ -33,12 +33,13 @@ The data flows through a modern data stack:
 ### Prerequisites
 Make sure you have the following installed:
 *   [Python 3.9+](https://www.python.org/downloads/)
-*   [Docker & Docker Compose](https://docs.docker.com/get-docker/)
+*   A Google Cloud Project (`GCP_PROJECT` in `.env`).
+*   A loaded `.json` service key pointing locally via `GOOGLE_APPLICATION_CREDENTIALS` in `.env`.
 *   `make` (Usually pre-installed on Mac/Linux)
 *   [Tableau Public](https://public.tableau.com/en-us/s/) (For the final visualization step)
 
 ### Step 1: Initial Setup
-Clone the repository and run the setup command. This will create a virtual environment, install the required Python packages (including dbt and psycopg2), copy the environment variables template, and create necessary directories.
+Clone the repository and run the setup command. This will create a virtual environment, install the required Python packages (including dbt-bigquery), copy the environment variables template, and create necessary directories.
 
 ```bash
 make setup
@@ -52,52 +53,44 @@ make gen-data
 ```
 *Verification:* Check the `data/synthetic` directory. You should see files like `dim_patient.csv`, `fact_encounters.csv`, etc.
 
-### Step 3: Start the Data Warehouse
-Start the local PostgreSQL database using Docker Compose in detached mode.
+### Step 3: Load Data into BigQuery
+Load the generated CSVs from `data/synthetic/` directly into the `raw` schema of the BigQuery database. This script handles dataset creation, schema inference from pandas, and bulk loading.
 
 ```bash
-make up
+make load-bigquery
 ```
-*Verification:* Run `docker ps` to ensure the `healthcare_pg` container is running on port 5432.
+*Verification:* The console output will confirm tables like `raw.dim_patient` and `raw.fact_encounters` were created and loaded in your GCP project.
 
-### Step 4: Load Data into PostgreSQL
-Load the generated CSVs from `data/synthetic/` into the `raw` schema of the PostgreSQL database. This script handles target database creation, schema setup, and fast bulk loading.
-
-```bash
-make load-postgres
-```
-*Verification:* The console output will confirm tables like `raw.dim_patient` and `raw.fact_encounters` were created and loaded.
-
-### Step 5: Transform Data with dbt
-Execute the dbt models to transform the raw data into business-ready KPI marts within the `public` schema.
+### Step 4: Transform Data with dbt
+Execute the dbt models to natively transform the raw data into business-ready KPI marts directly within BigQuery.
 
 ```bash
 make dbt-run
 ```
 *Verification:* In your terminal, you will see dbt compile and run 8 view models (staging) and 4 table models (marts). All should show a green `SUCCESS` status.
 
-### Step 6: Test Data Quality
-Run dbt tests to ensure data integrity constraints are met (e.g., no orphaned records, no null IDs, valid admitted types).
+### Step 5: Test Data Quality
+Run dbt tests natively on GCP to ensure data integrity constraints are met (e.g., no orphaned records, no null IDs, valid admitted types).
 
 ```bash
 make dbt-test
 ```
 *Verification:* The terminal should show exactly 20 tests passing successfully.
 
-### Step 7: Export to Tableau
-Extract the final dbt mart tables into the `exports/` directory as CSV files, so they can be imported into Tableau without needing a direct database connection.
+### Step 6: Export to Tableau
+Extract the final dbt mart tables into the `exports_gcp_bigquery/` directory as CSV files, so they can be securely imported into Tableau.
 
 ```bash
 make export-tableau
 ```
-*Verification:* Check the `exports/` directory. You will find `mart_hc_kpi_daily.csv`, `mart_hc_kpi_department.csv`, `mart_hc_readmission_drivers.csv`, and `mart_hc_cost_drivers.csv`.
+*Verification:* Check the `exports_gcp_bigquery/` directory. You will find `mart_hc_kpi_daily.csv`, `mart_hc_kpi_department.csv`, `mart_hc_readmission_drivers.csv`, and `mart_hc_cost_drivers.csv`.
 
 ---
 
 ## 📊 Connecting to Tableau
 1. Open **Tableau Public**.
 2. Click **Get Data** -> **Text/CSV**.
-3. Select the exported CSV files from the `exports/` folder:
+3. Select the exported CSV files from the `exports_gcp_bigquery/` folder (or `exports/` if referencing legacy setups):
    - `mart_hc_kpi_daily.csv`
    - `mart_hc_kpi_department.csv`
    - `mart_hc_readmission_drivers.csv`
@@ -113,7 +106,7 @@ make export-tableau
 ---
 
 ## 🧹 Cleanup
-When you are done, you can stop the database, remove the volumes, and clean all generated files using:
+When you are done, you can clean all generated local staging files using:
 
 ```bash
 make clean

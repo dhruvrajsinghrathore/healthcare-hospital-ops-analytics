@@ -16,6 +16,7 @@ __pycache__/
 # Generated Data & Output
 data/synthetic/*.csv
 exports/*.csv
+exports_gcp_bigquery/*.csv
 
 # dbt
 dbt/target/

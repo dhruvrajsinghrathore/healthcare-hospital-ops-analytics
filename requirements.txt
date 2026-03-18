@@ -1,6 +1,7 @@
 pandas
 numpy
 faker
-psycopg2-binary
-dbt-postgres
 python-dotenv
+google-cloud-bigquery
+db-dtypes
+dbt-bigquery

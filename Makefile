@@ -1,4 +1,4 @@
-.PHONY: setup gen-data up load-postgres dbt-run dbt-test export-tableau down clean
+.PHONY: setup gen-data load-bigquery dbt-run dbt-test export-tableau clean
 
 setup:
 	python3 -m venv venv
@@ -9,26 +9,18 @@ setup:
 gen-data:
 	. venv/bin/activate && python pipelines/generate_synthetic.py
 
-up:
-	docker-compose up -d
-	echo "Waiting for PostgreSQL to be ready..."
-	sleep 5
-
-load-postgres:
-	. venv/bin/activate && python pipelines/load_to_postgres.py
+load-bigquery:
+	. venv/bin/activate && python pipelines/load_to_bigquery.py
 
 dbt-run:
-	. venv/bin/activate && cd dbt && dbt run
+	. venv/bin/activate && set -a && . ./.env && set +a && cd dbt && GOOGLE_APPLICATION_CREDENTIALS=../$$(basename "$$GOOGLE_APPLICATION_CREDENTIALS") dbt deps || true
+	. venv/bin/activate && set -a && . ./.env && set +a && cd dbt && GOOGLE_APPLICATION_CREDENTIALS=../$$(basename "$$GOOGLE_APPLICATION_CREDENTIALS") dbt run
 
 dbt-test:
-	. venv/bin/activate && cd dbt && dbt test
+	. venv/bin/activate && set -a && . ./.env && set +a && cd dbt && GOOGLE_APPLICATION_CREDENTIALS=../$$(basename "$$GOOGLE_APPLICATION_CREDENTIALS") dbt test
 
 export-tableau:
 	. venv/bin/activate && python pipelines/export_marts_for_tableau.py
 
-down:
-	docker-compose down
-
 clean:
-	rm -rf data/synthetic/* exports/*
-	docker-compose down -v
+	rm -rf data/synthetic/*.csv exports_gcp_bigquery/*.csv
